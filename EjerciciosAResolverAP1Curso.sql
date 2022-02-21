@@ -3453,7 +3453,7 @@ drop PK_vehiculos_patentellegada, CK_vehiculos_tipo;
 -- 15- Vea si se han eliminado:
 exec sp_helpconstraint vehiculos;
 
---------- 65 - Trabajar con varias tablas (EJEMPLO)-----------
+---------54  - Trabajar con varias tablas (EJEMPLO)-----------
 
 /*Para evitar la repetición de datos y ocupar menos espacio, se separa la información en varias tablas. 
 Cada tabla almacena parte de la información que necesitamos registrar.*/
@@ -3472,7 +3472,7 @@ nombre varchar(20) not null,
 primary key(codigo)
 );
 
----------66 - Combinación interna (inner join)------------------
+---------55 - Combinación interna (inner join)------------------
 
 --PRIMER PROBLEMA
 
@@ -3588,7 +3588,7 @@ on insc.documento=ina.documento and
 insc.deporte=ina.deporte
 where insc.matricula='s';
 
---------- 67 - Combinación externa izquierda (left join)-------
+--------- 56 - Combinación externa izquierda (left join)-------
 
 --PRIMER PROBLEMA
 
@@ -3663,7 +3663,7 @@ on codigoprovincia = p.codigo
 where p.nombre='Cordoba';
 
 
---68 - Combinación externa derecha (right join)
+--------------57 - Combinación externa derecha (right join)------------
 
 --PRIMER PROBLEMA
 
@@ -3733,7 +3733,7 @@ where p.codigo is null
 order by ciudad;
 
 
--------69 - Combinación externa completa (full join)-----------
+--------58 - Combinación externa completa (full join)-----------
 
 --1- Elimine las tablas si existen y cree las tablas:
  if (object_id('deportes')) is not null
@@ -3811,7 +3811,7 @@ from inscriptos as i
 full join deportes as d
 on codigodeporte=codigo; 
 
--------70 - Combinaciones cruzadas (cross join)-------------------
+-------59 - Combinaciones cruzadas (cross join)-------------------
 
 --PRIMER PROBLEMA
 
@@ -3906,7 +3906,7 @@ cross join tareas as t
 where (g.sexo='f' and t.descripcion='vigilancia interior') or
 (g.sexo='m' and t.descripcion='vigilancia exterior');
 
------- 73 - Combinación de más de dos tablas------------
+------ 60 - Combinación de más de dos tablas------------
 
 --PRIMER PROBLEMA
 
@@ -3992,7 +3992,7 @@ join socios as s
 on s.documento=i.documento
 where s.documento='22222222';
 
----------74 - Combinaciones con update y delete(EJEMPLO)---------------
+---------61 - Combinaciones con update y delete(EJEMPLO)---------------
 
 if object_id('libros') is not null
  drop table libros;
@@ -4043,7 +4043,7 @@ if object_id('libros') is not null
   join editoriales as e
   on codigoeditorial=e.codigo;
 
------------------75 - Clave foránea (TEORIA)-------------
+-----------------62 - Clave foránea (TEORIA)-------------
 
 /*Las claves foráneas y las claves primarias deben ser del mismo tipo para poder enlazarse. Si modificamos una, debemos modificar la otra para que los valores se correspondan.
 
@@ -4051,7 +4051,1738 @@ Cuando alteramos una tabla, debemos tener cuidado con las claves foráneas. Si mo
 
 Entonces, una clave foránea es un campo (o varios) empleados para enlazar datos de 2 tablas, para establecer un "join" con otra tabla en la cual es clave primaria.*/
 
+---------------------63 - Unión-------------------------
+
+--1- Elimine las tablas si existen:
+if object_id('clientes') is not null
+drop table clientes;
+if object_id('proveedores') is not null
+drop table proveedores;
+if object_id('empleados') is not null
+drop table empleados;
+
+-- 2- Cree las tablas:
+create table proveedores(
+codigo int identity,
+nombre varchar (30),
+domicilio varchar(30),
+primary key(codigo)
+);
+
+create table clientes(
+codigo int identity,
+nombre varchar (30),
+domicilio varchar(30),
+primary key(codigo)
+);
+
+create table empleados(
+documento char(8) not null,
+nombre varchar(20),
+apellido varchar(20),
+domicilio varchar(30),
+primary key(documento)
+);
+
+-- 3- Ingrese algunos registros:
+insert into proveedores values('Bebida cola','Colon 123');
+insert into proveedores values('Carnes Unica','Caseros 222');
+insert into proveedores values('Lacteos Blanca','San Martin 987');
+insert into clientes values('Supermercado Lopez','Avellaneda 34');
+insert into clientes values('Almacen Anita','Colon 987');
+insert into clientes values('Garcia Juan','Sucre 345');
+insert into empleados values('23333333','Federico','Lopez','Colon 987');
+insert into empleados values('28888888','Ana','Marquez','Sucre 333');
+insert into empleados values('30111111','Luis','Perez','Caseros 956');
+
+/*4- El supermercado quiere enviar una tarjeta de salutación a todos los proveedores, clientes y 
+empleados y necesita el nombre y domicilio de todos ellos. Emplee el operador "union" para obtener 
+dicha información de las tres tablas.*/
+select nombre, domicilio from proveedores
+union
+select nombre, domicilio from clientes
+union
+select (apellido+' '+nombre), domicilio from empleados;
+
+/*5- Agregue una columna con un literal para indicar si es un proveedor, un cliente o un empleado y 
+ordene por dicha columna.*/
+
+select nombre, domicilio, 'proveedor' as categoria from proveedores
+union
+select nombre, domicilio, 'cliente' from clientes
+union
+select (apellido+' '+nombre), domicilio , 'empleado' from empleados
+order by categoria;
+
+----------------------64 - Agregar y eliminar campos ( alter table - add - drop)------------------------
+
+--1- Elimine la tabla, si existe, créela y cargue un registro:
+if object_id('empleados') is not null
+drop table empleados;
+
+create table empleados(
+apellido varchar(20),
+nombre varchar(20),
+domicilio varchar(30),
+fechaingreso datetime
+);
+
+insert into empleados(apellido,nombre) values ('Rodriguez','Pablo');
+
+----2- Agregue el campo "sueldo", de tipo decimal(5,2).
+alter table empleados
+add sueldo decimal(5,2);
+
+--3- Verifique que la estructura de la tabla ha cambiado.
+exec sp_columns empleados;
+
+--4- Agregue un campo "codigo", de tipo int con el atributo "identity".
+alter table empleados
+add codigo int identity;
+
+/*5- Intente agregar un campo "documento" no nulo.
+No es posible, porque SQL Server no permite agregar campos "not null" a menos que se especifique un 
+valor por defecto.*/
+
+alter table empleados
+add documento char(8) not null;
+
+/*6- Agregue el campo del punto anterior especificando un valor por defecto:
+ alter table empleados
+  add documento char(8) not null default '00000000';*/
+alter table empleados
+add documento char(8) not null default '00000000';
+
+--7- Verifique que la estructura de la tabla ha cambiado.
+exec sp_columns empleados;
+
+--8- Elimine el campo "sueldo".
+alter table empleados
+drop column sueldo;
+
+--9- Verifique la eliminación:
+exec sp_columns empleados;
+
+/*10- Intente eliminar el campo "documento".
+no lo permite.*/
+alter table empleados
+drop column documento;
+
+--11- Elimine los campos "codigo" y "fechaingreso" en una sola sentencia.
+alter table empleados
+drop column codigo,fechaingreso;
+
+--12- Verifique la eliminación de los campos:
+exec sp_columns empleados;
+
+
+--------------65 - Alterar campos (alter table - alter)-----------------
+
+--1- Elimine la tabla, si existe y créela:
+if object_id('empleados') is not null
+drop table empleados;
+
+create table empleados(
+legajo int not null,
+documento char(7) not null,
+nombre varchar(10),
+domicilio varchar(30),
+ciudad varchar(20) default 'Buenos Aires',
+sueldo decimal(6,2),
+cantidadhijos tinyint default 0,
+primary key(legajo)
+);
+
+--2- Modifique el campo "nombre" extendiendo su longitud.
+alter table empleados
+alter column nombre varchar(30);
+
+--3- Controle la modificación:
+exec sp_columns empleados;
+
+--4- Modifique el campo "sueldo" para que no admita valores nulos.
+alter table empleados
+alter column sueldo decimal(6,2) not null;
+
+--4- Modifique el campo "documento" ampliando su longitud a 8 caracteres.
+alter table empleados
+alter column documento char(8) not null;
+
+--5- Intente modificar el tipo de datos del campo "legajo" a "tinyint":
+alter table empleados
+alter column legajo tinyint not null;
+
+--6- Ingrese algunos registros, uno con "nombre" nulo:
+insert into empleados values(1,'22222222','Juan Perez','Colon 123','Cordoba',500,3);
+insert into empleados values(2,'30000000',null,'Sucre 456','Cordoba',600,2);
+
+--7- Intente modificar el campo "nombre" para que no acepte valores nulos:
+alter table empleados
+alter column nombre varchar(30) not null;
+
+--8- Elimine el registro con "nombre" nulo y realice la modificación del punto 7:
+delete from empleados where nombre is null;
+alter table empleados
+alter column nombre varchar(30) not null;
+
+--9- Modifique el campo "ciudad" a 10 caracteres.
+alter table empleados
+alter column ciudad varchar(10);
+
+--10- Intente agregar un registro con el valor por defecto para "ciudad":
+insert into empleados values(3,'33333333','Juan Perez','Sarmiento 856',default,500,4);
+
+--11- Modifique el campo "ciudad" sin que afecte la restricción dándole una longitud de 15 caracteres.
+alter table empleados
+alter column ciudad varchar(15);
+
+--12- Agregue el registro que no pudo ingresar en el punto 10:
+insert into empleados values(3,'33333333','Juan Perez','Sarmiento 856',default,500,4);
+
+--13- Intente agregar el atributo identity de "legajo". No se puede agregar este atributo.
+alter table empleados
+alter column legajo int identity;
+
+
+----------------66 - Campos calculados-----------------
+
+--PRIMER PROBLEMA
+
+--1- Elimine la tabla, si existe y créela nuevamente:
+if object_id('articulos') is not null
+ drop table articulos;
+
+create table articulos(
+codigo int identity,
+descripcion varchar(30),
+precio decimal(5,2) not null,
+cantidad smallint not null default 0,
+montototal as precio *cantidad
+);
+
+ --2- Intente ingresar un registro con valor para el campo calculado:
+insert into articulos values('birome',1.5,100,150);
+
+--3- Ingrese algunos registros:
+insert into articulos values('birome',1.5,100);
+insert into articulos values('cuaderno 12 hojas',4.8,150);
+insert into articulos values('lapices x 12',5,200);
+
+--4- Recupere los registros:
+select * from articulos;
+
+--5- Actualice un precio y recupere los registros:
+update articulos set precio=2 where descripcion='birome';
+select * from articulos;
+
+--6- Actualice una cantidad y vea el resultado:
+update articulos set cantidad=200 where descripcion='birome';
+select * from articulos;
+
+--7- Intente actualizar un campo calculado:
+update articulos set montototal=300 where descripcion='birome';
+
+----------67 - Subconsultas(TEORIA)----------------------
+
+/*Una subconsulta (subquery) es una sentencia "select" anidada en otra sentencia "select", "insert", "update" o "delete" (o en otra subconsulta).
+
+Las subconsultas se emplean cuando una consulta es muy compleja, entonces se la divide en varios pasos lógicos y se obtiene el resultado con una única instrucción y cuando la consulta depende de los resultados de otra consulta.
+
+Generalmente, una subconsulta se puede reemplazar por combinaciones y estas últimas son más eficientes.
+
+Las subconsultas se DEBEN incluir entre paréntesis.
+
+Puede haber subconsultas dentro de subconsultas, se admiten hasta 32 niveles de anidación.
+
+Hay tres tipos básicos de subconsultas:
+
+las que retornan un solo valor escalar que se utiliza con un operador de comparación o en lugar de una expresión.
+las que retornan una lista de valores, se combinan con "in", o los operadores "any", "some" y "all".
+los que testean la existencia con "exists".*/
+
+
+----------------------------68 - Subconsultas como expresión------------------------------
+
+--PRIMER PROBLEMA
+
+--1- Elimine la tabla, si existe:
+if object_id('alumnos') is not null
+drop table alumnos;
+
+--2- Créela con los campos necesarios. Agregue una restricción "primary key" para el campo "documento" 
+create table alumnos(
+documento char(8),
+nombre varchar(30),
+nota decimal(4,2),
+primary key(documento),
+constraint CK_alumnos_nota_valores check (nota>=0 and nota <=10),
+);
+
+--3-Ingrese algunos registros:
+insert into alumnos values('30111111','Ana Algarbe',5.1);
+insert into alumnos values('30222222','Bernardo Bustamante',3.2);
+insert into alumnos values('30333333','Carolina Conte',4.5);
+insert into alumnos values('30444444','Diana Dominguez',9.7);
+insert into alumnos values('30555555','Fabian Fuentes',8.5);
+insert into alumnos values('30666666','Gaston Gonzalez',9.70);
+
+/*4- Obtenga todos los datos de los alumnos con la nota más alta, empleando subconsulta.
+2 registros.*/
+select alumnos.*
+from alumnos
+where nota=
+(select max(nota) from alumnos);
+
+/*5- Realice la misma consulta anterior pero intente que la consulta interna retorne, además del 
+máximo valor de nota, el nombre. 
+Mensaje de error, porque la lista de selección de una subconsulta que va luego de un operador de 
+comparación puede incluir sólo un campo o expresión (excepto si se emplea "exists" o "in").*/
+select documento ,nombre, nota
+from alumnos
+where nota=
+(select nombre,max(nota) from alumnos);
+
+/*6- Muestre los alumnos que tienen una nota menor al promedio, su nota, y la diferencia con el 
+promedio.
+3 registros.*/
+select alumnos.*,
+(select avg(nota) from alumnos)-nota as diferencia
+from alumnos
+where nota< (select avg(nota) from alumnos);
+
+/*7- Cambie la nota del alumno que tiene la menor nota por 4.
+1 registro modificado.*/
+update alumnos set nota=4
+where nota= (select min(nota) from alumnos);
+
+/*8- Elimine los alumnos cuya nota es menor al promedio.
+3 registros eliminados.*/
+delete from alumnos
+where nota< (select avg(nota) from alumnos);
+
+-------------------69 - Subconsultas con in---------------------
+
+--PRIMER PROBLEMA
+
+--1- Elimine las tablas "clientes" y "ciudades", si existen:
+if(object_id('ciudades')) is not null
+drop table ciudades;
+if (object_id('clientes')) is not null
+drop table clientes;
+
+create table ciudades(
+codigo tinyint identity,
+nombre varchar(20),
+primary key (codigo)
+);
+
+--2- Cree la tabla "clientes"
+create table clientes (
+codigo int identity,
+nombre varchar(30),
+domicilio varchar(30),
+codigociudad tinyint not null,
+primary key(codigo),
+constraint FK_clientes_ciudad
+foreign key (codigociudad)
+references ciudades(codigo)
+on update cascade,
+);
+
+--3- Ingrese algunos registros para ambas tablas:
+insert into ciudades (nombre) values('Cordoba');
+insert into ciudades (nombre) values('Cruz del Eje');
+insert into ciudades (nombre) values('Carlos Paz');
+insert into ciudades (nombre) values('La Falda');
+insert into ciudades (nombre) values('Villa Maria');
+
+insert into clientes values ('Lopez Marcos','Colon 111',1);
+insert into clientes values ('Lopez Hector','San Martin 222',1);
+insert into clientes values ('Perez Ana','San Martin 333',2);
+insert into clientes values ('Garcia Juan','Rivadavia 444',3);
+insert into clientes values ('Perez Luis','Sarmiento 555',3);
+insert into clientes values ('Gomez Ines','San Martin 666',4);
+insert into clientes values ('Torres Fabiola','Alem 777',5);
+insert into clientes values ('Garcia Luis','Sucre 888',5);
+
+/*4- Necesitamos conocer los nombres de las ciudades de aquellos clientes cuyo domicilio es en calle 
+"San Martin", empleando subconsulta.
+3 registros.*/
+select nombre
+from ciudades
+where codigo in
+(select codigociudad
+from clientes
+where domicilio like 'San Martin %');
+
+
+--5- Obtenga la misma salida anterior pero empleando join.
+select distinct ci.nombre
+from ciudades as ci
+join clientes as cl
+on codigociudad=ci.codigo
+where domicilio like 'San Martin%';
+
+/*6- Obtenga los nombre de las ciudades de los clientes cuyo apellido no comienza con una letra 
+específica, empleando subconsulta.
+2 registros.*/
+
+select nombre
+from ciudades
+where codigo not in
+(select codigociudad
+from clientes
+where nombre like 'G%');
+
+/*7- Pruebe la subconsulta del punto 6 separada de la consulta exterior para verificar que retorna una 
+lista de valores de un solo campo.
+*/
+select codigociudad
+from clientes
+where nombre like 'G%';
+
+
+-------------------70 - Subconsultas any - some - all------------------------
+
+--PRIMER PROBLEMA
+
+--1- Elimine las tablas si existen:
+
+if object_id('inscriptos') is not null
+drop table inscriptos;
+if object_id('socios') is not null
+drop table socios;
+
+--2- Cree las tablas:
+create table socios(
+numero int identity,
+documento char(8),
+nombre varchar(30),
+domicilio varchar(30),
+primary key (numero)
+);
+ 
+create table inscriptos (
+numerosocio int not null,
+deporte varchar(20) not null,
+cuotas tinyint
+constraint CK_inscriptos_cuotas
+check (cuotas>=0 and cuotas<=10)
+constraint DF_inscriptos_cuotas default 0,
+primary key(numerosocio,deporte),
+constraint FK_inscriptos_socio
+foreign key (numerosocio)
+references socios(numero)
+on update cascade
+on delete cascade,
+);
+
+--3- Ingrese algunos registros:
+insert into socios values('23333333','Alberto Paredes','Colon 111');
+insert into socios values('24444444','Carlos Conte','Sarmiento 755');
+insert into socios values('25555555','Fabian Fuentes','Caseros 987');
+insert into socios values('26666666','Hector Lopez','Sucre 344');
+
+insert into inscriptos values(1,'tenis',1);
+insert into inscriptos values(1,'basquet',2);
+insert into inscriptos values(1,'natacion',1);
+insert into inscriptos values(2,'tenis',9);
+insert into inscriptos values(2,'natacion',1);
+insert into inscriptos values(2,'basquet',default);
+insert into inscriptos values(2,'futbol',2);
+insert into inscriptos values(3,'tenis',8);
+insert into inscriptos values(3,'basquet',9);
+insert into inscriptos values(3,'natacion',0);
+insert into inscriptos values(4,'basquet',10);
+
+/*4- Muestre el número de socio, el nombre del socio y el deporte en que está inscripto con un join de 
+ambas tablas.*/
+select numero,nombre,deporte
+from socios as s
+join inscriptos as i
+on numerosocio=numero;
+
+/*5- Muestre los socios que se serán compañeros en tenis y también en natación (empleando 
+subconsulta)
+3 filas devueltas.*/
+select nombre
+from socios
+join inscriptos as i
+on numero=numerosocio
+where deporte='natacion' and 
+numero= any
+(select numerosocio
+from inscriptos as i
+ where deporte='tenis');
+
+ /*6- vea si el socio 1 se ha inscripto en algún deporte en el cual se haya inscripto el socio 2.
+3 filas.*/
+select deporte
+from inscriptos as i
+where numerosocio=1 and
+deporte= any
+(select deporte
+from inscriptos as i
+ where numerosocio=2);
+
+ --7- Obtenga el mismo resultado anterior pero empleando join.
+select i1.deporte
+from inscriptos as i1
+join inscriptos as i2
+on i1.deporte=i2.deporte
+where i1.numerosocio=1 and
+i2.numerosocio=2;
+
+/*8- Muestre los deportes en los cuales el socio 2 pagó más cuotas que ALGUN deporte en los que se 
+inscribió el socio 1.
+2 registros.*/
+select deporte
+from inscriptos as i
+where numerosocio=2 and
+cuotas>any
+(select cuotas
+from inscriptos
+where numerosocio=1);
+
+/*9- Muestre los deportes en los cuales el socio 2 pagó más cuotas que TODOS los deportes en que se 
+inscribió el socio 1.
+1 registro.*/
+select deporte
+from inscriptos as i
+where numerosocio=2 and
+cuotas>all
+(select cuotas
+from inscriptos
+where numerosocio=1);
+
+/*10- Cuando un socio no ha pagado la matrícula de alguno de los deportes en que se ha inscripto, se 
+lo borra de la inscripción de todos los deportes. Elimine todos los socios que no pagaron ninguna 
+cuota en algún deporte.*/
+delete from inscriptos
+where numerosocio=any
+(select numerosocio 
+from inscriptos
+where cuotas=0);
+
+----------------------71 - Subconsultas correlacionadas------------------------
+
+--PRIMER PROBLEMA
+
+--1- Elimine las tablas si existen:
+if object_id('inscriptos') is not null
+drop table inscriptos;
+if object_id('socios') is not null
+drop table socios;
+
+--2- Cree las tablas:
+create table socios(
+numero int identity,
+documento char(8),
+nombre varchar(30),
+domicilio varchar(30),
+primary key (numero)
+);
+ 
+create table inscriptos (
+numerosocio int not null,
+deporte varchar(20) not null,
+cuotas tinyint
+constraint CK_inscriptos_cuotas
+check (cuotas>=0 and cuotas<=10)
+constraint DF_inscriptos_cuotas default 0,
+primary key(numerosocio,deporte),
+constraint FK_inscriptos_socio
+foreign key (numerosocio)
+references socios(numero)
+on update cascade
+on delete cascade,
+);
+
+--3- Ingrese algunos registros:
+insert into socios values('23333333','Alberto Paredes','Colon 111');
+insert into socios values('24444444','Carlos Conte','Sarmiento 755');
+insert into socios values('25555555','Fabian Fuentes','Caseros 987');
+insert into socios values('26666666','Hector Lopez','Sucre 344');
+
+insert into inscriptos values(1,'tenis',1);
+insert into inscriptos values(1,'basquet',2);
+insert into inscriptos values(1,'natacion',1);
+insert into inscriptos values(2,'tenis',9);
+insert into inscriptos values(2,'natacion',1);
+insert into inscriptos values(2,'basquet',default);
+insert into inscriptos values(2,'futbol',2);
+insert into inscriptos values(3,'tenis',8);
+insert into inscriptos values(3,'basquet',9);
+insert into inscriptos values(3,'natacion',0);
+insert into inscriptos values(4,'basquet',10);
+
+/*4- Se necesita un listado de todos los socios que incluya nombre y domicilio, la cantidad de 
+deportes a los cuales se ha inscripto, empleando subconsulta.*/
+
+select nombre,domicilio,
+(select count(*)
+from inscriptos as i
+where s.numero=i.numerosocio) as 'deportes'
+from socios as s;
+
+/*5- Se necesita el nombre de todos los socios, el total de cuotas que debe pagar (10 por cada 
+deporte) y el total de cuotas pagas, empleando subconsulta.*/
+select nombre,
+(select (count(*)*10)
+from inscriptos as i
+where s.numero=i.numerosocio) as total,
+(select sum(i.cuotas)
+from inscriptos as i
+where s.numero=i.numerosocio) as pagas
+from socios as s;
+
+--6- Obtenga la misma salida anterior empleando join.
+select nombre,
+count(i.deporte)*10 as total,
+sum(i.cuotas) as pagas
+from socios as s
+join inscriptos as i
+on numero=numerosocio
+group by nombre;
+
+--------------72 - Subconsulta - Exists y Not Exists------------------------
+
+--1- Elimine las tablas si existen:
+if object_id('inscriptos') is not null
+drop table inscriptos;
+if object_id('socios') is not null
+drop table socios;
+
+--2- Cree las tablas:
+create table socios(
+numero int identity,
+documento char(8),
+nombre varchar(30),
+domicilio varchar(30),
+primary key (numero)
+);
+ 
+create table inscriptos (
+numerosocio int not null,
+deporte varchar(20) not null,
+cuotas tinyint
+constraint CK_inscriptos_cuotas
+check (cuotas>=0 and cuotas<=10)
+constraint DF_inscriptos_cuotas default 0,
+primary key(numerosocio,deporte),
+constraint FK_inscriptos_socio
+foreign key (numerosocio)
+references socios(numero)
+on update cascade
+on delete cascade,
+);
+
+--3- Ingrese algunos registros:
+insert into socios values('23333333','Alberto Paredes','Colon 111');
+insert into socios values('24444444','Carlos Conte','Sarmiento 755');
+insert into socios values('25555555','Fabian Fuentes','Caseros 987');
+insert into socios values('26666666','Hector Lopez','Sucre 344');
+
+insert into inscriptos values(1,'tenis',1);
+insert into inscriptos values(1,'basquet',2);
+insert into inscriptos values(1,'natacion',1);
+insert into inscriptos values(2,'tenis',9);
+insert into inscriptos values(2,'natacion',1);
+insert into inscriptos values(2,'basquet',default);
+insert into inscriptos values(2,'futbol',2);
+insert into inscriptos values(3,'tenis',8);
+insert into inscriptos values(3,'basquet',9);
+insert into inscriptos values(3,'natacion',0);
+insert into inscriptos values(4,'basquet',10);
+
+/*4- Emplee una subconsulta con el operador "exists" para devolver la lista de socios que se 
+inscribieron en un determinado deporte.*/
+select nombre
+from socios as s
+where exists
+(select *from inscriptos as i
+where s.numero=i.numerosocio and i.deporte='natacion');
+
+--5- Busque los socios que NO se han inscripto en un deporte determinado empleando "not exists".
+select nombre
+from socios as s
+where not exists
+(select *from inscriptos as i
+where s.numero=i.numerosocio and i.deporte='natacion');
+
+--6- Muestre todos los datos de los socios que han pagado todas las cuotas.
+select s.*
+from socios as s
+where exists
+(select *from inscriptos as i
+where s.numero=i.numerosocio and i.cuotas=10);
+
+--------------------73 - Subconsulta en lugar de una tabla------------------------
+
+--1- Elimine las tablas si existen:
+if object_id('inscriptos') is not null
+drop table inscriptos;
+if object_id('socios') is not null
+drop table socios;
+if object_id('deportes') is not null
+drop table deportes;
+
+--2- Cree las tablas con las siguientes estructuras:
+create table socios(
+documento char(8) not null, 
+nombre varchar(30),
+domicilio varchar(30),
+primary key(documento)
+);
+
+create table deportes(
+codigo tinyint identity,
+nombre varchar(20),
+profesor varchar(15),
+primary key(codigo)
+);
+
+create table inscriptos(
+documento char(8) not null, 
+codigodeporte tinyint not null,
+año char(4),
+matricula char(1),--'s'=paga, 'n'=impaga
+primary key(documento,codigodeporte,año),
+constraint FK_inscriptos_socio
+foreign key (documento)
+references socios(documento)
+on update cascade
+on delete cascade
+);
+
+--3- Ingrese algunos registros en las 3 tablas:
+insert into socios values('22222222','Ana Acosta','Avellaneda 111');
+insert into socios values('23333333','Betina Bustos','Bulnes 222');
+insert into socios values('24444444','Carlos Castro','Caseros 333');
+insert into socios values('25555555','Daniel Duarte','Dinamarca 44');
+
+insert into deportes values('basquet','Juan Juarez');
+insert into deportes values('futbol','Pedro Perez');
+insert into deportes values('natacion','Marina Morales');
+insert into deportes values('tenis','Marina Morales');
+
+insert into inscriptos values ('22222222',3,'2006','s');
+insert into inscriptos values ('23333333',3,'2006','s');
+insert into inscriptos values ('24444444',3,'2006','n');
+insert into inscriptos values ('22222222',3,'2005','s');
+insert into inscriptos values ('22222222',3,'2007','n');
+insert into inscriptos values ('24444444',1,'2006','s');
+insert into inscriptos values ('24444444',2,'2006','s');
+
+/*4- Realice una consulta en la cual muestre todos los datos de las inscripciones, incluyendo el 
+nombre del deporte y del profesor.
+Esta consulta es un join.*/
+select i.documento,i.codigodeporte,d.nombre as deporte, año, matricula, d.profesor
+from deportes as d
+join inscriptos as i
+on d.codigo=i.codigodeporte;
+
+/*5- Utilice el resultado de la consulta anterior como una tabla derivada para emplear en lugar de una 
+tabla para realizar un "join" y recuperar el nombre del socio, el deporte en el cual está inscripto, 
+el año, el nombre del profesor y la matrícula.*/
+select s.nombre,td.deporte,td.profesor,td.año,td.matricula
+from socios as s
+join (select i.documento,i.codigodeporte,d.nombre as deporte, año, matricula, d.profesor
+from deportes as d
+join inscriptos as i
+on d.codigo=i.codigodeporte) as td
+on td.documento=s.documento;
+
+
+--------------------74 - Subconsulta (update - delete)----------------------
+
+--1- Elimine las tablas si existen:
+if object_id('inscriptos') is not null
+drop table inscriptos;
+if object_id('socios') is not null
+drop table socios;
+
+--2- Cree las tablas:
+create table socios(
+numero int identity,
+documento char(8),
+nombre varchar(30),
+domicilio varchar(30),
+primary key (numero)
+);
+ 
+
+create table inscriptos (
+numerosocio int not null,
+deporte varchar(20) not null,
+matricula char(1),-- 'n' o 's'
+primary key(numerosocio,deporte),
+constraint FK_inscriptos_socio
+foreign key (numerosocio)
+ references socios(numero)
+);
+
+ --3- Ingrese algunos registros:
+insert into socios values('23333333','Alberto Paredes','Colon 111');
+insert into socios values('24444444','Carlos Conte','Sarmiento 755');
+insert into socios values('25555555','Fabian Fuentes','Caseros 987');
+insert into socios values('26666666','Hector Lopez','Sucre 344');
+
+insert into inscriptos values(1,'tenis','s');
+insert into inscriptos values(1,'basquet','s');
+insert into inscriptos values(1,'natacion','s');
+insert into inscriptos values(2,'tenis','s');
+insert into inscriptos values(2,'natacion','s');
+insert into inscriptos values(2,'basquet','n');
+insert into inscriptos values(2,'futbol','n');
+insert into inscriptos values(3,'tenis','s');
+insert into inscriptos values(3,'basquet','s');
+insert into inscriptos values(3,'natacion','n');
+insert into inscriptos values(4,'basquet','n');
+
+/*4- Actualizamos la cuota ('s') de todas las inscripciones de un socio determinado (por documento) 
+empleando subconsulta.
+*/
+update inscriptos set matricula='s'
+where numerosocio=
+(select numero
+from socios
+where documento='25555555');
+
+--5- Elimine todas las inscripciones de los socios que deben alguna matrícula (5 registros eliminados)
+delete from inscriptos
+where numerosocio in
+(select numero
+from socios as s
+join inscriptos
+on numerosocio=numero
+where matricula='n');
+
+
+--------------------75 - Subconsulta (insert)-------------------------
+
+--1- Elimine las tablas si existen:
+if object_id('facturas') is not null
+drop table facturas;
+if object_id('clientes') is not null
+drop table clientes;
+
+--2-Créelas:
+create table clientes(
+codigo int identity,
+nombre varchar(30),
+domicilio varchar(30),
+primary key(codigo)
+);
+
+create table facturas(
+numero int not null,
+fecha datetime,
+codigocliente int not null,
+total decimal(6,2),
+primary key(numero),
+constraint FK_facturas_cliente
+foreign key (codigocliente)
+references clientes(codigo)
+on update cascade
+);
+
+--3-Ingrese algunos registros:
+insert into clientes values('Juan Lopez','Colon 123');
+insert into clientes values('Luis Torres','Sucre 987');
+insert into clientes values('Ana Garcia','Sarmiento 576');
+insert into clientes values('Susana Molina','San Martin 555');
+
+insert into facturas values(1200,'2007-01-15',1,300);
+insert into facturas values(1201,'2007-01-15',2,550);
+insert into facturas values(1202,'2007-01-15',3,150);
+insert into facturas values(1300,'2007-01-20',1,350);
+insert into facturas values(1310,'2007-01-22',3,100);
+
+/*4- El comercio necesita una tabla llamada "clientespref" en la cual quiere almacenar el nombre y 
+domicilio de aquellos clientes que han comprado hasta el momento más de 500 pesos en mercaderías. 
+Elimine la tabla si existe y créela con esos 2 campos:*/
+if object_id ('clientespref') is not null
+drop table clientespref;
+create table clientespref(
+nombre varchar(30),
+domicilio varchar(30)
+);
+
+/*5- Ingrese los registros en la tabla "clientespref" seleccionando registros de la tabla "clientes" y 
+"facturas".*/
+
+insert into clientespref
+select nombre,domicilio
+from clientes 
+where codigo in 
+(select codigocliente
+from clientes as c
+join facturas as f
+on codigocliente=codigo
+group by codigocliente
+having sum(total)>500);
+
+--6- Vea los registros de "clientespref":
+ select * from clientespref;
+
+ ------------------76 - Crear tabla a partir de otra (select - into)------------------------
+
+ --1- Elimine las tablas "empleados" y "sucursales" si existen:
+ if object_id('empleados')is not null
+drop table empleados;
+if object_id('sucursales')is not null
+drop table sucursales;
+
+--2- Cree la tabla "sucursales":
+create table sucursales( 
+codigo int identity,
+ciudad varchar(30) not null,
+primary key(codigo)
+); 
+
+--3- Cree la tabla "empleados":
+create table empleados( 
+documento char(8) not null,
+nombre varchar(30) not null,
+domicilio varchar(30),
+seccion varchar(20),
+sueldo decimal(6,2),
+codigosucursal int,
+primary key(documento),
+constraint FK_empleados_sucursal
+foreign key (codigosucursal)
+references sucursales(codigo)
+on update cascade
+); 
+
+--4- Ingrese algunos registros para ambas tablas:
+insert into sucursales values('Cordoba');
+insert into sucursales values('Villa Maria');
+insert into sucursales values('Carlos Paz');
+insert into sucursales values('Cruz del Eje');
+
+insert into empleados values('22222222','Ana Acosta','Avellaneda 111','Secretaria',500,1);
+insert into empleados values('23333333','Carlos Caseros','Colon 222','Sistemas',800,1);
+insert into empleados values('24444444','Diana Dominguez','Dinamarca 333','Secretaria',550,2);
+insert into empleados values('25555555','Fabiola Fuentes','Francia 444','Sistemas',750,2);
+insert into empleados values('26666666','Gabriela Gonzalez','Guemes 555','Secretaria',580,3);
+insert into empleados values('27777777','Juan Juarez','Jujuy 777','Secretaria',500,4);
+insert into empleados values('28888888','Luis Lopez','Lules 888','Sistemas',780,4);
+insert into empleados values('29999999','Maria Morales','Marina 999','Contaduria',670,4);
+
+--5- Realice un join para mostrar todos los datos de "empleados" incluyendo la ciudad de la sucursal:
+select documento,nombre,domicilio,seccion,sueldo,ciudad
+from empleados
+join sucursales on codigosucursal=codigo;
+
+/*6-Cree una tabla llamada "secciones" que contenga las secciones de la empresa (primero elimínela, si 
+existe):*/
+if object_id('secciones') is not null
+drop table secciones;
+
+ select distinct seccion as nombre
+into secciones
+from empleados;
+
+--7- Recupere la información de "secciones":
+select *from secciones;
+
+/*8- Se necesita una nueva tabla llamada "sueldosxseccion" que contenga la suma de los sueldos de los 
+empleados por sección. Primero elimine la tabla, si existe:*/
+
+if object_id('sueldosxseccion') is not null
+drop table sueldosxseccion;
+
+select seccion, sum(sueldo) as total
+into sueldosxseccion
+from empleados
+group by seccion;
+
+--9- Recupere los registros de la nueva tabla:
+select *from sueldosxseccion;
+
+/*10- Se necesita una tabla llamada "maximossueldos" que contenga los mismos campos que "empleados" y 
+guarde los 3 empleados con sueldos más altos. Primero eliminamos, si existe, la tabla */
+if object_id('maximossueldos') is not null
+drop table maximossueldos;
+
+select top 3 *
+into maximossueldos
+from empleados
+order by sueldo;
+
+--11- Vea los registros de la nueva tabla:
+select *from maximossueldos;
+
+/*12- Se necesita una nueva tabla llamada "sucursalCordoba" que contenga los nombres y sección de los 
+empleados de la ciudad de Córdoba. En primer lugar, eliminamos la tabla, si existe. Luego, consulte 
+las tablas "empleados" y "sucursales" y guarde el resultado en la nueva tabla:*/
+if object_id('sucursalCordoba') is not null
+drop table sucursalCordoba;
+
+select nombre,ciudad
+into sucursalCordoba
+from empleados
+join sucursales
+on codigosucursal=codigo
+where ciudad='Cordoba';
+
+--13- Consulte la nueva tabla:
+select *from sucursalCordoba;
+
+
+-----------------------77 - go(TEORIA)--------------------------------
+
+/*"go" es un signo de finalización de un lote de sentencias SQL. No es una sentencia, es un comando.
+El lote de sentencias está compuesto por todas las sentencias antes de "go" o todas las sentencias entre dos "go".
+
+Las sentencias no deben ocupar la misma linea en la que está "go".
+
+Habrá notado que no se puede ejecutar un procedimiento almacenado luego de otras sentencias a menos que se incluya "execute" (o "exec").*/
 
 
 
+-------------------------78 - Vistas---------------------
 
+--1- Elimine las tablas y créelas nuevamente:
+if object_id('inscriptos') is not null  
+drop table inscriptos;
+if object_id('socios') is not null  
+drop table socios;
+if object_id('profesores') is not null  
+drop table profesores; 
+if object_id('cursos') is not null  
+ drop table cursos;
+
+create table socios(
+documento char(8) not null,
+nombre varchar(40),
+domicilio varchar(30),
+constraint PK_socios_documento
+primary key (documento)
+);
+
+create table profesores(
+documento char(8) not null,
+nombre varchar(40),
+domicilio varchar(30),
+constraint PK_profesores_documento
+primary key (documento)
+);
+
+create table cursos(
+numero tinyint identity,
+deporte varchar(20),
+dia varchar(15),
+constraint CK_inscriptos_dia check (dia in('lunes','martes','miercoles','jueves','viernes','sabado')),
+documentoprofesor char(8),
+constraint PK_cursos_numero
+primary key (numero),
+);
+
+create table inscriptos(
+documentosocio char(8) not null,
+numero tinyint not null,
+matricula char(1),
+constraint CK_inscriptos_matricula check (matricula in('s','n')),
+constraint PK_inscriptos_documento_numero
+primary key (documentosocio,numero)
+);
+
+--2- Ingrese algunos registros para todas las tablas:
+insert into socios values('30000000','Fabian Fuentes','Caseros 987');
+insert into socios values('31111111','Gaston Garcia','Guemes 65');
+insert into socios values('32222222','Hector Huerta','Sucre 534');
+insert into socios values('33333333','Ines Irala','Bulnes 345');
+
+insert into profesores values('22222222','Ana Acosta','Avellaneda 231');
+insert into profesores values('23333333','Carlos Caseres','Colon 245');
+insert into profesores values('24444444','Daniel Duarte','Sarmiento 987');
+insert into profesores values('25555555','Esteban Lopez','Sucre 1204');
+
+insert into cursos values('tenis','lunes','22222222');
+insert into cursos values('tenis','martes','22222222');
+insert into cursos values('natacion','miercoles','22222222');
+insert into cursos values('natacion','jueves','23333333');
+insert into cursos values('natacion','viernes','23333333');
+insert into cursos values('futbol','sabado','24444444');
+insert into cursos values('futbol','lunes','24444444');
+insert into cursos values('basquet','martes','24444444');
+
+insert into inscriptos values('30000000',1,'s');
+insert into inscriptos values('30000000',3,'n');
+insert into inscriptos values('30000000',6,null);
+insert into inscriptos values('31111111',1,'s');
+insert into inscriptos values('31111111',4,'s');
+insert into inscriptos values('32222222',8,'s');
+
+--3- Elimine la vista "vista_club" si existe:
+if object_id('vista_club') is not null drop view vista_club;
+
+/*4- Cree una vista en la que aparezca el nombre y documento del socio, el deporte, el día y el nombre 
+del profesor.*/
+create view vista_club as
+select s.nombre as socio,s.documento as docsocio,s.domicilio as domsocio,c.deporte,dia,
+p.nombre as profesor, matricula
+from socios as s
+full join inscriptos as i
+on s.documento=i.documentosocio
+full join cursos as c
+on i.numero=c.numero
+full join profesores as p
+on c.documentoprofesor=p.documento;
+
+--5- Muestre la información contenida en la vista.
+select *from vista_club;
+
+/*6- Realice una consulta a la vista donde muestre la cantidad de socios inscriptos en cada deporte 
+ordenados por cantidad.*/
+select deporte,dia,count(socio) as cantidad
+from vista_club
+where deporte is not null
+group by deporte,dia
+order by cantidad;
+
+--7- Muestre (consultando la vista) los cursos (deporte y día) para los cuales no hay inscriptos.
+select deporte,dia from vista_club
+where socio is null and deporte is not null;
+
+--8- Muestre los nombres de los socios que no se han inscripto en ningún curso (consultando la vista)
+select socio from vista_club
+where deporte is null and socio is not null;
+
+--9- Muestre (consultando la vista) los profesores que no tienen asignado ningún deporte aún.
+select profesor from vista_club where deporte is null and profesor is not null;
+
+--10- Muestre (consultando la vista) el nombre y documento de los socios que deben matrículas.
+select socio, docsocio from vista_club where deporte is not null and matricula <> 's';
+
+/*11- Consulte la vista y muestre los nombres de los profesores y los días en que asisten al club para 
+dictar sus clases.*/
+select distinct profesor,dia
+from vista_club where profesor is not null;
+
+--12- Muestre la misma información anterior pero ordenada por día.
+select distinct profesor,dia
+from vista_club where profesor is not null
+order by dia;
+
+--13- Muestre todos los socios que son compañeros en tenis los lunes.
+select socio from vista_club
+where deporte='tenis' and dia='lunes';
+
+
+/*/*14- Elimine la vista "vista_inscriptos" si existe y créela para que muestre la cantidad de 
+inscriptos por curso, incluyendo el número del curso, el nombre del deporte y el día.*/*/
+ if object_id('vista_inscriptos') is not null
+drop view vista_inscriptos;
+
+create view vista_inscriptos as
+select deporte,dia,
+(select count(*)
+from inscriptos as i
+where i.numero=c.numero) as cantidad
+from cursos as c;
+
+--15- Consulte la vista:
+select *from vista_inscriptos;
+
+
+----------------79 - Lenguaje de control de flujo (case)------------------
+
+--1- Elimine la tabla "empleados" si existe:
+if object_id('empleados') is not null
+drop table empleados;
+
+--2- Cree la tabla:
+create table empleados(
+documento char(8) not null,
+nombre varchar(30) not null,
+sexo char(1),
+fechanacimiento datetime,
+fechaingreso datetime,
+cantidadhijos tinyint,
+sueldo decimal(5,2),
+primary key(documento)
+);
+
+--3- Ingrese algunos registros:
+insert into empleados values ('22333111','Juan Perez','m','1970-05-10','1987-04-05',2,550);
+insert into empleados values ('25444444','Susana Morales','f','1975-11-06','1990-04-06',0,650);
+insert into empleados values ('20111222','Hector Pereyra','m','1965-03-25','1997-04-12',3,510);
+insert into empleados values ('30000222','Luis LUque','m','1980-03-29','1999-11-06',1,700);
+insert into empleados values ('20555444','Laura Torres','f','1965-12-22','2003-11-06',3,400);
+insert into empleados values ('30000234','Alberto Soto','m','1989-10-10','1999-11-06',2,420);
+insert into empleados values ('20125478','Ana Gomez','f','1976-09-21','1998-11-06',3,350);
+insert into empleados values ('24154269','Ofelia Garcia','f','1974-05-12','1990-11-06',0,390);
+insert into empleados values ('30415426','Oscar Torres','m','1978-05-02','1997-11-06',1,400);
+
+/*4- Es política de la empresa festejar cada fin de mes, los cumpleaños de todos los empleados que 
+cumplen ese mes.*/
+select sexo, count(*) as cantidad, obsequio=
+case 
+when sexo='f' then 'rosas'
+else 'corbata'
+end
+from empleados
+where datepart(month,fechanacimiento)=5
+group by sexo;
+
+/*5- Además, si el empleado cumple 10,20,30,40... años de servicio, se le regala una placa 
+recordatoria.*/
+select nombre,datepart(year,fechaingreso) as añoingreso,
+datepart(year,getdate())-datepart(year,fechaingreso) as AñosdeServicio, placa=
+case (datepart(year,getdate())-datepart(year,fechaingreso)) %10
+when 0 then 'Si'  --si la cantidad de años es divisible por 10
+else 'No'
+end
+from empleados
+where datepart(month,fechaingreso)=4;
+
+/*6- La empresa paga un sueldo adicional por hijos a cargos. Para un sueldo menor o igual a $500 el 
+salario familiar por hijo es de $200, para un sueldo superior, el monto es de $100 por hijo. Muestre 
+el nombre del empleado, el sueldo básico, la cantidad de hijos a cargo, el valor del salario por 
+hijo, el valor total del salario familiar y el sueldo final con el salario familiar incluido de 
+todos los empleados.*/
+select nombre,sueldo,cantidadhijos,porhijo=
+case 
+when sueldo<=500 then 200
+else 100
+end,
+salariofamilar=
+case
+when sueldo<=500 then 200*cantidadhijos
+else 100*cantidadhijos
+end,
+sueldototal=
+case
+when sueldo<=500 then sueldo+(200*cantidadhijos)
+else sueldo+(100*cantidadhijos)
+end
+from empleados
+order by sueldototal;
+
+-----------------------80 - Lenguaje de control de flujo (if)-------------------------
+
+--1- Elimine la tabla "empleados" si existe:
+if object_id('empleados') is not null
+drop table empleados;
+
+--2- Cree la tabla:
+create table empleados(
+documento char(8) not null,
+nombre varchar(30) not null,
+sexo char(1),
+fechanacimiento datetime,
+sueldo decimal(5,2),
+primary key(documento)
+);
+
+--3- Ingrese algunos registros:
+insert into empleados values ('22333111','Juan Perez','m','1970-05-10',550);
+insert into empleados values ('25444444','Susana Morales','f','1975-11-06',650);
+insert into empleados values ('20111222','Hector Pereyra','m','1965-03-25',510);
+insert into empleados values ('30000222','Luis LUque','m','1980-03-29',700);
+insert into empleados values ('20555444','Laura Torres','f','1965-12-22',400);
+insert into empleados values ('30000234','Alberto Soto','m','1989-10-10',420);
+insert into empleados values ('20125478','Ana Gomez','f','1976-09-21',350);
+insert into empleados values ('24154269','Ofelia Garcia','f','1974-05-12',390);
+insert into empleados values ('30415426','Oscar Torres','m','1978-05-02',400);
+
+/*4- Es política de la empresa festejar cada fin de mes, los cumpleaños de todos los empleados que 
+cumplen ese mes. Si los empleados son de sexo femenino, se les regala un ramo de rosas, si son de 
+sexo masculino, una corbata. La secretaria de la Gerencia necesita saber cuántos ramos de rosas y 
+cuántas corbatas debe comprar para el mes de mayo.
+*/
+if exists(select * from empleados
+where datepart(month,fechanacimiento)=5)--si hay empleados que cumplan en mayo
+(select sexo,count(*) as cantidad 
+from empleados
+where datepart(month,fechanacimiento)=5
+group by sexo)
+else select 'no hay empleados que cumplan en mayo';
+
+--SEGUNDO PROBLEMA---
+
+if object_id('entradas') is not null
+drop table entradas;
+
+create table entradas(
+sala tinyint,
+fechahora datetime,
+capacidad smallint,
+entradasvendidas smallint,
+primary key(sala,fechahora)
+);
+
+insert into entradas values(1,'2006-05-10 20:00',300,50);
+insert into entradas values(1,'2006-05-10 23:00',300,250);
+insert into entradas values(2,'2006-05-10 20:00',400,350);
+insert into entradas values(2,'2006-05-11 20:00',400,380);
+insert into entradas values(2,'2006-05-11 23:00',400,400);
+insert into entradas values(3,'2006-05-12 20:00',350,350);
+insert into entradas values(3,'2006-05-12 22:30',350,100);
+insert into entradas values(4,'2006-05-12 20:00',250,0);
+
+if exists
+(select * from entradas where capacidad>entradasvendidas)
+select sala,fechahora,capacidad-entradasvendidas as disponibles
+from entradas
+where capacidad>entradasvendidas
+else select 'Todas las entradas estan agotadas';
+
+
+--------- 81 - Procedimientos almacenados(TEORIA)--------------
+
+/*SQL Server permite los siguientes tipos de procedimientos almacenados:
+
+1) del sistema: están almacenados en la base de datos "master" y llevan el prefijo "sp_"; permiten recuperar información de las tablas del sistema y pueden ejecutarse en cualquier base de datos.
+
+2) locales: los crea el usuario (próximo tema).
+
+3) temporales: pueden ser locales, cuyos nombres comienzan con un signo numeral (#), o globales, cuyos nombres comienzan con 2 signos numeral (##). Los procedimientos almacenados temporales locales están disponibles en la sesión de un solo usuario y se eliminan automáticamente al finalizar la sesión; los globales están disponibles en las sesiones de todos los usuarios.
+
+4) extendidos: se implementan como bibliotecas de vínculos dinámicos (DLL, Dynamic-Link Libraries), se ejecutan fuera del entorno de SQL Server.
+
+Ventajas:
+
+- comparten la lógica de la aplicación con las otras aplicaciones, con lo cual el acceso y las modificaciones de los datos se hacen en un solo sitio.
+
+- permiten realizar todas las operaciones que los usuarios necesitan evitando que tengan acceso directo a las tablas.
+
+- reducen el tráfico de red; en vez de enviar muchas instrucciones, los usuarios realizan operaciones enviando una única instrucción, lo cual disminuye el número de solicitudes entre el cliente y el servidor.*/
+
+
+
+---------------82 - Procedimientos almacenados (crear - ejecutar)-------------------
+
+--1- Eliminamos la tabla, si existe y la creamos:
+if object_id('empleados') is not null
+drop table empleados;
+
+
+create table empleados(
+documento char(8),
+nombre varchar(20),
+apellido varchar(20),
+sueldo decimal(6,2),
+cantidadhijos tinyint,
+seccion varchar(20),
+primary key(documento)
+);
+
+--2- Ingrese algunos registros:
+insert into empleados values('22222222','Juan','Perez',300,2,'Contaduria');
+insert into empleados values('22333333','Luis','Lopez',300,0,'Contaduria');
+insert into empleados values ('22444444','Marta','Perez',500,1,'Sistemas');
+insert into empleados values('22555555','Susana','Garcia',400,2,'Secretaria');
+insert into empleados values('22666666','Jose Maria','Morales',400,3,'Secretaria');
+
+--3- Elimine el procedimiento llamado "pa_empleados_sueldo" si existe:
+if object_id('pa_empleados_sueldo') is not null
+drop procedure pa_empleados_sueldo;
+
+/*4- Cree un procedimiento almacenado llamado "pa_empleados_sueldo" que seleccione los nombres, 
+apellidos y sueldos de los empleados.*/
+create procedure pa_empleados_sueldo
+as
+select nombre,apellido,sueldo
+from empleados;
+
+--5- Ejecute el procedimiento creado anteriormente.
+exec pa_empleados_sueldo;
+
+--6- Elimine el procedimiento llamado "pa_empleados_hijos" si existe:
+if object_id('pa_empleados_hijos') is not null
+drop procedure pa_empleados_hijos;
+
+/*7- Cree un procedimiento almacenado llamado "pa_empleados_hijos" que seleccione los nombres, 
+apellidos y cantidad de hijos de los empleados con hijos.*/
+create procedure pa_empleados_hijos
+as
+select nombre,apellido,cantidadhijos
+from empleados
+where cantidadhijos>0;
+
+--8- Ejecute el procedimiento creado anteriormente.
+exec pa_empleados_hijos;
+
+/*9- Actualice la cantidad de hijos de algún empleado sin hijos y vuelva a ejecutar el procedimiento 
+para verificar que ahora si aparece en la lista.*/
+
+update empleados set cantidadhijos=1 where documento='22333333';
+exec pa_empleados_hijos;
+
+
+----------------83 - Tablas temporales(TEORIA)-----------------
+
+/*Las tablas temporales son visibles solamente en la sesión actual.
+
+Las tablas temporales se eliminan automáticamente al acabar la sesión o la función o procedimiento almacenado en el cual fueron definidas. Se pueden eliminar con "drop table".
+
+Pueden ser locales (son visibles sólo en la sesión actual) o globales (visibles por todas las sesiones).
+
+Para crear tablas temporales locales se emplea la misma sintaxis que para crear cualquier tabla, excepto que se coloca un signo numeral (#) precediendo el nombre.*/
+
+
+
+----------------84 - Funciones(TEORIA)------------------
+
+/*SQL Server ofrece varios tipos de funciones para realizar distintas operaciones. Hemos visto y empleado varias de ellas.
+
+Se pueden emplear las funciones del sistema en cualquier lugar en el que se permita una expresión en una sentencia "select".
+
+Las funciones pueden clasificarse en:
+
+- deterministicas: siempre retornan el mismo resultado si se las invoca enviando el mismo valor de entrada. Todas las funciones de agregado y string son deterministicas, excepto "charindex" y "patindex".
+
+- no deterministicas: pueden retornar distintos resultados cada vez que se invocan con el mismo valor de entrada. 
+Las siguientes son algunas de las funciones no deterministicas: getdate, datename, textptr, textvalid, rand. Todas las funciones de configuración, cursor, meta data, seguridad y estadísticas del sistema son no deterministicas.
+
+SQL Server admite 3 tipos de funciones definidas por el usuario clasificadas según el valor retornado:
+
+1) escalares: retornan un valor escalar;
+
+2) de tabla de varias instrucciones (retornan una tabla) y
+
+3) de tabla en línea (retornan una tabla).*/
+
+---------------------85 - Funciones escalares (crear y llamar)------------------------
+
+--1- Elimine las tablas si existen:
+ if object_id('consultas') is not null
+ drop table consultas;
+ if object_id('medicos') is not null
+ drop table medicos;
+
+ --2- Cree las tablas con las siguientes estructuras:
+create table medicos (
+documento char(8) not null,
+nombre varchar(30),
+constraint PK_medicos 
+primary key clustered (documento)
+);
+
+create table consultas(
+fecha datetime,
+medico char(8) not null,
+paciente varchar(30),
+constraint PK_consultas
+primary key (fecha,medico),
+constraint FK_consultas_medico
+foreign key (medico)
+references medicos(documento)
+on update cascade
+on delete cascade
+);
+
+--3- Ingrese algunos registros:
+insert into medicos values('22222222','Alfredo Acosta');
+insert into medicos values('23333333','Pedro Perez');
+insert into medicos values('24444444','Marcela Morales');
+
+insert into consultas values('2007/03/26 8:00','22222222','Juan Juarez');
+insert into consultas values('2007/03/26 8:00','23333333','Gaston Gomez');
+insert into consultas values('2007/03/26 8:30','22222222','Nora Norte');
+insert into consultas values('2007/03/28 9:00','22222222','Juan Juarez');
+insert into consultas values('2007/03/29 8:00','24444444','Nora Norte');
+insert into consultas values('2007/03/24 8:30','22222222','Hector Huerta'); 
+insert into consultas values('2007/03/24 9:30','23333333','Hector Huerta');
+
+--4- Elimine la función "f_nombreDia" si existe:
+if object_id('f_nombreDia') is not null
+drop function f_nombreDia;
+
+/*5- Cree la función "f_nombreDia" que recibe una fecha (tipo string) y nos retorne el nombre del día 
+en español.*/
+create function f_nombreDia
+(@fecha varchar(30))
+returns varchar(10)
+as
+begin
+declare @nombre varchar(10)
+set @nombre='Fecha inválida'   
+if (isdate(@fecha)=1)
+begin
+set @fecha=cast(@fecha as datetime)
+set @nombre=
+case datename(weekday,@fecha)
+when 'Monday' then 'lunes'
+when 'Tuesday' then 'martes'
+when 'Wednesday' then 'miércoles'
+when 'Thursday' then 'jueves'
+when 'Friday' then 'viernes'
+when 'Saturday' then 'sábado'
+when 'Sunday' then 'domingo'
+end
+end
+return @nombre
+end;
+ 
+ --6- Elimine la función "f_horario" si existe:
+if object_id('f_horario') is not null
+drop function f_horario;
+
+--7- Cree la función "f_horario" que recibe una fecha (tipo string) y nos retorne la hora y minutos.
+create function f_horario
+(@fecha varchar(30))
+returns varchar(5)
+as
+begin
+declare @nombre varchar(5)
+set @nombre='Fecha inválida'   
+if (isdate(@fecha)=1)
+begin
+set @fecha=cast(@fecha as datetime)
+set @nombre=rtrim(cast(datepart(hour,@fecha) as char(2)))+':'
+set @nombre=@nombre+rtrim(cast(datepart(minute,@fecha) as char(2)))
+end--si es una fecha válida
+return @nombre
+end;
+
+--8- Elimine la función "f_fecha" si existe:
+if object_id('f_fecha') is not null
+drop function f_fecha;
+
+/*9- Cree la función "f_fecha" que recibe una fecha (tipo string) y nos retorne la fecha (sin hora ni 
+minutos)*/
+create function f_fecha
+(@fecha varchar(30))
+returns varchar(12)
+as
+begin
+declare @nombre varchar(12)
+set @nombre='Fecha inválida'   
+if (isdate(@fecha)=1)
+begin
+set @fecha=cast(@fecha as datetime)
+set @nombre=rtrim(cast(datepart(day,@fecha) as char(2)))+'/'
+set @nombre=@nombre+rtrim(cast(datepart(month,@fecha) as char(2)))+'/'
+set @nombre=@nombre+rtrim(cast(datepart(year,@fecha) as char(4)))
+end
+return @nombre
+end;
+
+/*10- Muestre todas las consultas del médico llamado 'Alfredo Acosta', incluyendo el día (emplee la 
+función "f_nombreDia", la fecha (emplee la función "f_fecha"), el horario (emplee la función 
+"f_horario") y el nombre del paciente.*/
+select dbo.f_nombredia(fecha) as dia,
+dbo.f_fecha(fecha) as fecha,
+dbo.f_horario(fecha) as horario,
+paciente
+from consultas as c
+join medicos as m
+on m.documento=c.medico
+where m.nombre='Alfredo Acosta';
+
+--11- Muestre todos los turnos para el día sábado, junto con la fecha, de todos los médicos.
+select fecha, m.nombre
+from consultas as c
+join medicos as m
+on m.documento=c.medico
+where dbo.f_nombredia(fecha)='sábado';
+
+--12- Envíe a la función "f_nombreDia" una fecha y muestre el valor retornado:
+declare @valor char(30)
+set @valor='2007/04/09'
+select dbo.f_nombreDia(@valor);
+
+
+ ------SEGUNDO PROBLEMA--------
+
+if object_id('empleados') is not null
+drop table empleados;
+create table empleados(
+documento char(8) not null,
+nombre varchar(30),
+fechanacimiento datetime,
+fechaingreso datetime,
+telefono char(12),
+mail varchar(50)
+ );
+
+insert into empleados values('22222222', 'Ana Acosta', '1970/10/02', '1995/10/10', '4556677', 'anitaacosta@hotmail.com');
+insert into empleados values('25555555', 'Bernardo Bustos', '1973/01/15', '1999/02/15', '4789012', null);
+insert into empleados values('30000000', 'Carlos Caseros', '1980/5/25', '2001/05/05', null, null);
+insert into empleados values('32222222', 'Estela Esper', '1985/02/20', '2006/12/12', null, 'estelaesper@gmail.com');
+
+if object_id('f_edad') is not null
+  drop function f_edad;
+
+create function f_edad
+(@fechaactual datetime,
+@fecha datetime='2007/01/01'
+)
+returns tinyint
+as
+begin
+declare @edad tinyint
+set @edad=null
+if (@fechaactual>=@fecha)
+begin
+set @edad=datepart(year,@fechaactual)-datepart(year,@fecha)
+if (datepart(month,@fecha)>datepart(month,@fechaactual))
+set @edad=@edad-1
+else 
+if (datepart(month,@fecha)=datepart(month,@fechaactual)) and 
+(datepart(day,@fecha)>datepart(day,@fechaactual))
+set @edad=@edad-1
+end--es mayor la actual
+return @edad
+end;
+
+select nombre, dbo.f_edad(getdate(),fechanacimiento) as edad
+from empleados;
+
+select nombre, dbo.f_edad(fechaingreso,fechanacimiento) as 'edad al ingresar',
+dbo.f_edad(getdate(),fechaingreso) as 'años de servicio'
+from empleados;
+
+select dbo.f_edad(getdate(),'1971/05/25');
+
+select dbo.f_edad();
+
+select dbo.f_edad(getdate(),default);
+
+if object_id('f_valorNulo') is not null
+drop function f_valorNulo;
+
+create function f_valorNulo
+(@valor varchar(50))
+returns varchar(50)
+begin
+if @valor is null
+set @valor='No tiene'
+return @valor
+end;
+
+select documento,nombre,fechanacimiento,
+dbo.f_valorNulo(telefono) as telefono,
+dbo.f_valorNulo(mail) as mail
+from empleados;
+
+
+ ------------86 - Funciones de tabla de varias instrucciones--------------
+
+ --1- Elimine la tabvla si existe:
+ if object_id('empleados') is not null
+ drop table empleados;
+
+ --2- Cree la tabla con la siguiente estructura:
+create table empleados(
+documento char(8) not null,
+apellido varchar(30) not null,
+nombre varchar(30) not null,
+domicilio varchar(30),
+ciudad varchar(30),
+fechanacimiento datetime,
+constraint PK_empleados
+primary key(documento)
+);
+
+--3- Ingrese algunos registros:
+insert into empleados values('22222222','Acosta','Ana','Avellaneda 123','Cordoba','1970/10/10');
+insert into empleados values('23333333','Bustos','Bernardo','Bulnes 234','Cordoba','1972/05/15');
+insert into empleados values('24444444','Caseros','Carlos','Colon 356','Carlos Paz','1980/02/25');
+insert into empleados values('25555555','Fuentes','Fabiola','Fragueiro 987','Jesus Maria','1984/06/12');
+
+--4- Elimine la función "f_empleados" si existe:
+if object_id('f_empleados') is not null
+drop function f_empleados;
+
+/*5- Cree una función que reciba como parámetro el texto "total" o "parcial" y muestre, en el primer 
+caso, todos los datos de los empleados y en el segundo caso (si recibe el valor "parcial"): el 
+documento, apellido, ciudad y año de nacimiento.*/
+create function f_empleados
+(@opcion varchar(10)
+)
+returns @listado table
+(documento char(8),
+nombre varchar(60),
+domicilio varchar(60),
+nacimiento varchar(12))
+as 
+begin
+if @opcion not in ('total','parcial')
+set @opcion='parcial'
+if @opcion='total'
+insert @listado 
+select documento,
+(apellido+' '+nombre),
+(domicilio+' ('+ciudad+')'), 
+cast(fechanacimiento as varchar(12))
+from empleados
+else
+insert @listado
+select documento,apellido,ciudad,cast(datepart(year,fechanacimiento) as char(4))
+from empleados
+return
+end;
+
+--6- Llame a la función creada anteriormente enviándole "total".
+select *from dbo.f_empleados('total');
+
+--7- Llame a la función anteriormente creada sin enviar argumento.
+select *from dbo.f_empleados();
+
+--8- Llame a la función enviándole una cadena vacía.
+select *from dbo.f_empleados('');
+
+/*9- Ejecute la función "f_empleados" enviando "parcial" como argumento y recupere solamente los 
+registros cuyo domicilio es "Cordoba".*/
+select *from dbo.f_empleados('parcial')
+ where domicilio='Cordoba';
+
+
+ ----------87 - Funciones con valores de tabla en línea(EJEMPLO)---------
+
+if object_id('libros') is not null
+drop table libros;
+
+create table libros(
+codigo int identity,
+titulo varchar(40),
+autor varchar(30),
+editorial varchar(20)
+);
+
+insert into libros values('Uno','Richard Bach','Planeta');
+insert into libros values('El aleph','Borges','Emece');
+insert into libros values('Ilusiones','Richard Bach','Planeta');
+insert into libros values('Aprenda PHP','Mario Molina','Nuevo siglo');
+insert into libros values('Matematica estas ahi','Paenza','Nuevo siglo');
+
+if object_id('f_libros') is not null
+drop function f_libros;
+
+create function f_libros
+(@autor varchar(30)='Borges')
+returns table
+as
+return (
+select titulo,editorial
+from libros
+where autor like '%'+@autor+'%'
+);
+
+select *from f_libros('Bach');
+
+if object_id('f_libros_autoreditorial') is not null
+drop function f_libros_autoreditorial;
+
+create function f_libros_autoreditorial
+(@autor varchar(30)='Borges',
+@editorial varchar(20)='Emece')
+returns table
+as
+return (
+select titulo,autor,editorial
+from libros
+where autor like '%'+@autor+'%' and
+editorial like '%'+@editorial+'%'
+);
+
+select *from f_libros_autoreditorial('','Nuevo siglo');
+
+select *from f_libros_autoreditorial(default,default);
